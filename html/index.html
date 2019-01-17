@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Dxx-自实现原生轮播图</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+      box-sizing: border-box;
+    }
+    .container {
+      width: 400px;
+      height: 200px;
+      border: 1px solid red;
+      position: relative;
+      overflow: hidden;
+    }
+    .inner {
+      position: relative;
+      width: 400px;
+      height: 200px;
+    }
+    .inner ul {
+      width: 1000%;
+      position: absolute;
+    }
+    .inner ul li {
+      float: left;
+    }
+    img {
+      width: 400px;
+      height: 200px;
+    }
+    .square {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+    }
+    .square li {
+      float: left;
+      width: 20px;
+      height: 20px;
+      text-align: center;
+      line-height: 20px;
+      background: white;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+    .square li.current {
+      background: orange;
+    }
+    .arrow {
+      position: absolute;
+      width: 100%;
+      height: 50px;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      margin: auto;
+      display: none;
+    }
+    .arrow span {
+      width: 50px;
+      height: 50px;
+      background: rgba(240, 240, 240, 0.2);
+      color: #ccc;
+      line-height: 50px;
+      font-size: 36px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .container:hover .arrow {
+      display: block;
+    }
+    .left {
+      float: left;
+    }
+    .right {
+      float: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="container" class="container">
+    <div class="inner">
+      <ul>
+        <li><a><img src="../images/a.jpg" alt=""/></a></li>
+        <li><a><img src="../images/b.png" alt=""/></a></li>
+        <li><a><img src="../images/c.png" alt=""/></a></li>
+        <li><a><img src="../images/d.png" alt=""/></a></li>
+      </ul>
+      <ol class="square">
+
+      </ol>
+    </div>
+    <div class="arrow">
+      <span class="left"> < </span>
+      <span class="right"> > </span>
+    </div>
+  </div>
+  <script>
+    //父容器
+    var container = document.getElementById('container');
+    //相框
+    var inner = container.children[0];
+    //图片ul
+    var ulObj = inner.children[0];
+    //图片集合
+    var list = ulObj.children;
+    //图片宽度 = 相框宽度
+    var imgWidth = inner.offsetWidth;
+    //右下角小按钮ol
+    var olObj = inner.children[1];
+    //箭头
+    var arrow = container.children[1];
+    //左箭头
+    var leftA = arrow.children[0];
+    //右箭头
+    var rightA = arrow.children[1];
+    //图片索引 箭头点击事件要与小按钮的hover事件相关联，所以需要一个全局变量保持索引值
+    var index = 0;
+    //创建小按钮
+    for (let i = 0; i < list.length; i++) {
+      var liObj = document.createElement('li');
+      liObj.innerHTML = i + 1;
+      olObj.appendChild(liObj);
+      liObj.onmouseover = onMouseOver;
+    }
+    //默认展示第一张图片
+    olObj.children[0].className = 'current';
+    //为了无缝连接，将第一张图片克隆并添加至末尾
+    ulObj.appendChild(list[0].cloneNode(true));
+    //自动播放
+    var interval = autoPlay();    
+
+    rightA.onclick = onRightClick;
+    leftA.onclick = onLeftClick;
+    container.onmouseover = stopAutoPlay;
+    container.onmouseout = autoPlay;
+
+    //右箭头点击事件
+    function onRightClick() {
+      //当图片索引等于最后一张重复图片(为了无缝连接的第一张图的复制)索引时
+      if (index == list.length - 1) {
+        index = 0;
+        ulObj.style.left = index + 'px';
+      }
+      index++;
+      move(ulObj,-index*imgWidth);
+      //改变小按钮样式(与上面虽然是相同的if条件，但是不要合并，会出现奇怪结果。并且样式归样式，位移归位移)
+      //这里的判断是在index++之后判断，上面的index判断是在下一次点击的时候，所以不能合并
+      if (index == list.length - 1) {
+        olObj.children[olObj.children.length - 1].className = '';
+        olObj.children[0].className = 'current';
+      }else {
+        for (let i = 0; i < olObj.children.length; i++) {
+          olObj.children[i].removeAttribute('class');
+        }
+        olObj.children[index].className = 'current';
+      }
+    }
+    //左箭头点击事件
+    function onLeftClick() {
+      if (index == 0) {
+        index = list.length-1;
+        ulObj.style.left = -index*imgWidth + 'px';
+      }
+      index--;
+      move(ulObj,-index*imgWidth);
+      for (let i = 0; i < olObj.children.length; i++) {
+        olObj.children[i].removeAttribute('class');
+      }
+      olObj.children[index].className = 'current';
+    }
+    //停止自动轮播
+    function stopAutoPlay() {
+      clearInterval(interval);
+    }
+    //开始自动轮播
+    function autoPlay() {
+      interval = setInterval(onRightClick,3000);
+      return interval;
+    }
+    //小按钮hover事件
+    function onMouseOver() {
+      for (let i = 0; i < olObj.children.length; i++) {
+        olObj.children[i].removeAttribute('class');
+      }
+      this.className = 'current';
+      index = this.innerText-1;
+      move(ulObj,-index*imgWidth);
+    }
+    //图片移动事件(动画)
+    function move(element, target) {
+      //每次开始时先清理一次定时器。
+      if (element.interval) {
+        // console.log('element.interval==='+element.interval);
+        flag = 0;
+        clearInterval(element.interval);
+      }
+      //当前位置
+      var current = element.offsetLeft;
+      //步进, 如果是跳跃式的选择就将步进变大
+      if (Math.abs(target - current) > imgWidth) {
+        var step = 100;
+      }else {
+        var step = 10;
+      }
+      step = (target > current) ? step : -step;
+      //移动 如果使用var 来创建定时器，那么每点一次就会开辟一个空间创建一个定时器所以将定时器设置在元素的属性上，这样就是改变元素的指向
+      element.interval = setInterval(function () {
+        current += step;
+        if (Math.abs(current - target) > Math.abs(step)) {
+          element.style.left = current + 'px';
+        }else {
+          // console.log('element.interval++++'+element.interval);
+          clearInterval(element.interval);
+          element.style.left = target + 'px';
+        }
+      },10);
+    }
+  </script>
+</body>
+</html>
